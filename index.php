@@ -213,6 +213,10 @@ function fileFactory($fileName, $content)
  */
 function getThumbName($fileName)
 {
+	$lastSlashPosition = strrpos($fileName, '/');
+	if (false !== $lastSlashPosition) {
+		$fileName = substr($fileName, $lastSlashPosition+1);
+	}
 	$lastDotPosition = strrpos($fileName, '.');
 	if (false !== $lastDotPosition) {
 		$fileName = substr($fileName, 0, $lastDotPosition);
@@ -375,24 +379,25 @@ if (get_magic_quotes_gpc()) {
 }
 
 // Read content in directory
-function recursiveReadDirectory($dir)
+function recursiveReadDirectory($base, $add='')
 {
 	$content = array();
+	$dir = $base .'/'. $add;
 	if ($handle = opendir($dir)) {
 		while (false !== ($file = readdir($handle))) {
 			if (substr($file, 0, 1) != '.'
-				&& is_dir($dir . $file))
+				&& is_dir($dir .'/'. $file))
 			{
-				$add = recursiveReadDirectory($dir . $file);
-				$content = array_merge($content, $add);
+				$more = recursiveReadDirectory($base, $add .'/'. $file);
+				$content = array_merge($content, $more);
 			}
 			else if (substr($file, 0, 1) != '.'
-				&& is_file($dir . $file)
+				&& is_file($dir .'/'. $file)
 				&& CURRENT_FILENAME != $file
 				&& substr($file, 0, strlen(THUMB_PREFIX)) != THUMB_PREFIX
 				&& isAllowedFile($file)
 			) {
-				$content[] = $file;
+				$content[] = $add .'/'. $file;
 			}
 		}
 		closedir($handle);
@@ -401,7 +406,7 @@ function recursiveReadDirectory($dir)
 }
 
 
-$content = recursiveReadDirectory(DIRNAME);
+$content = recursiveReadDirectory(DIRNAME, '.');
 usort($content, 'sortContent');
 
 // Route the request
