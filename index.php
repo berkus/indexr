@@ -375,20 +375,33 @@ if (get_magic_quotes_gpc()) {
 }
 
 // Read content in directory
-$content = array();
-if ($handle = opendir(DIRNAME)) {
-	while (false !== ($file = readdir($handle))) {
-		if (substr($file, 0, 1) != '.'
-			&& is_file(DIRNAME . $file)
-			&& CURRENT_FILENAME != $file
-			&& substr($file, 0, strlen(THUMB_PREFIX)) != THUMB_PREFIX
-			&& isAllowedFile($file)
-		) {
-			$content[] = $file;
+function recursiveReadDirectory($dir)
+{
+	$content = array();
+	if ($handle = opendir($dir)) {
+		while (false !== ($file = readdir($handle))) {
+			if (substr($file, 0, 1) != '.'
+				&& is_dir($dir . $file))
+			{
+				$add = recursiveReadDirectory($dir . $file);
+				$content = array_merge($content, $add);
+			}
+			else if (substr($file, 0, 1) != '.'
+				&& is_file($dir . $file)
+				&& CURRENT_FILENAME != $file
+				&& substr($file, 0, strlen(THUMB_PREFIX)) != THUMB_PREFIX
+				&& isAllowedFile($file)
+			) {
+				$content[] = $file;
+			}
 		}
+		closedir($handle);
 	}
-	closedir($handle);
+	return $content;
 }
+
+
+$content = recursiveReadDirectory(DIRNAME);
 usort($content, 'sortContent');
 
 // Route the request
